@@ -1,0 +1,104 @@
+머신런닝2-3주차
+		Estimate			p_value(귀무가설 채택여부)
+(Intercept)	상수값
+독립변수		선형계수값
+
+잔차를 제외하고 또 회귀모델 평가요소 - 설명력(p-value 포함)
+p-value<0.05일 경우 신뢰성 상승 = 괜찮은 모델 + 독립변수와 종속변수 관계 있다
+설명력은 클수록 신뢰성 상승(0~1 사이의 값)
+
+회귀식은 = 설명력으로  판단
+상수와 독립변수,종속 변수의 상관관계는 = p-value값으로 판단
+
+names(train_data) 하면 R이 인식하는 columns 이름 나옴
+
+ex)
+train_data <- read.csv("C:/Users/USER/Desktop/Concrete Compressive Strength.csv")
+names(train_data)
+#산점도
+library(ggplot2)
+ggplot(train_data, aes(x = Cement, y = Concrete.compressive.strength )) +
+  geom_point(alpha = 0.7) +
+  labs(title = "콘크리트 세기",
+       x = "시멘트 (thigh, cm)",
+       y = "콘크리트 세기 (upper_arm, cm)") +
+  theme_minimal()
+
+ggplot(train_data, aes(x = Blast.Furnace.Slag, y = Concrete.compressive.strength )) +
+  geom_point(alpha = 0.7) +
+  labs(title = "콘크리트 세기",
+       x = "Blast Furnace Slag (thigh, cm)",
+       y = "콘크리트 세기 (upper_arm, cm)") +
+  theme_minimal()
+
+ggplot(train_data, aes(x = Fly.Ash, y = Concrete.compressive.strength )) +
+  geom_point(alpha = 0.7) +
+  labs(title = "콘크리트 세기",
+       x = "Fly Ash (thigh, cm)",
+       y = "콘크리트 세기 (upper_arm, cm)") +
+  theme_minimal()
+
+ggplot(train_data, aes(x = Water, y = Concrete.compressive.strength )) +
+  geom_point(alpha = 0.7) +
+  labs(title = "콘크리트 세기",
+       x = "water (thigh, cm)",
+       y = "콘크리트 세기 (upper_arm, cm)") +
+  theme_minimal()
+
+ggplot(train_data, aes(x = Superplasticizer, y = Concrete.compressive.strength )) +
+  geom_point(alpha = 0.7) +
+  labs(title = "콘크리트 세기",
+       x = "Superplasticizerh (thigh, cm)",
+       y = "콘크리트 세기 (upper_arm, cm)") +
+  theme_minimal()
+
+ggplot(train_data, aes(x = Coarse.Aggregate, y = Concrete.compressive.strength )) +
+  geom_point(alpha = 0.7) +
+  labs(title = "콘크리트 세기",
+       x = "Coarse Aggregate (thigh, cm)",
+       y = "콘크리트 세기 (upper_arm, cm)") +
+  theme_minimal()
+
+ggplot(train_data, aes(x = Fine.Aggregate, y = Concrete.compressive.strength )) +
+  geom_point(alpha = 0.7) +
+  labs(title = "콘크리트 세기",
+       x = "Fine Aggregate (thigh, cm)",
+       y = "콘크리트 세기 (upper_arm, cm)") +
+  theme_minimal()
+
+ggplot(train_data, aes(x = Age..day., y = Concrete.compressive.strength )) +
+  geom_point(alpha = 0.7) +
+  labs(title = "콘크리트 세기",
+       x = "Age (day) (thigh, cm)",
+       y = "콘크리트 세기 (upper_arm, cm)") +
+  theme_minimal()
+
+
+
+
+#회귀분석 모델
+model <- lm(Concrete.compressive.strength ~ Cement, data = train_data)
+summary(model)
+#잔차
+residuals(model)
+
+
+결과
+
+    Min      1Q  Median      3Q     Max 
+-40.594 -10.952  -0.572   9.992  43.241 
+
+Coefficients:
+             Estimate Std. Error t value Pr(>|t|)    
+(Intercept) 13.442795(상수)   1.296925   10.37   <2e-16 ***(p-value)값
+Cement       0.079580(회귀 계수)   0.004324   18.41   <2e-16 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 14.5 on 1028 degrees of freedom
+Multiple R-squared:  0.2478,	Adjusted R-squared:  0.2471(설명력)
+F-statistic: 338.7 on 1 and 1028 DF,  p-value: < 2.2e-16
+
+
+  
+
