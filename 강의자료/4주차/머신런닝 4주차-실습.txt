@@ -1,0 +1,64 @@
+install.packages("rstatix")
+install.packages("skimr")
+install.packages("car")
+
+library(rstatix)
+library(skimr)
+library(car)
+df <- read.csv("C:/Users/USER/Desktop/02.diabetes.csv", header = TRUE, stringsAsFactors = TRUE)
+skim(df)
+
+df <- na.omit(df)
+names(df)
+df <- select(df, -c(Outcome))
+df <- select(df, -c(Pregnancies,BloodPressure,BMI,Age)) #여러 열 삭제
+skim(df)
+
+result <- lm(df$Diabetes ~ ., data = df)#문자열 columns 제거
+result1 <- lm(df$Diabetes ~ 1, data = df)#p value가 0.05보다 큰거 제거
+
+anova_result <- anova(result1, result1)#평균값으로 분석한 것과 차이가 얼마나 나냐 이걸로 회귀분석 유무 결정
+print(anova_result)
+
+summary(result)#p-value가 0.05보다 큰거는 상관관계가 없으니깐 제거해라(모든 변수에 대한 p value나옴)
+
+saveRDS(result, "regression_model.rds")
+
+loaded_model <- readRDS("regression_model.RDS")
+
+
+new_data <- read.csv("C:/Users/USER/Desktop/02.diabetes_test.csv")
+
+predicted <- predict(loaded_model, newdata = new_data)
+head(predicted)
+
+results <- data.frame(new_data, Predicted = predicted)
+
+rmse <- sqrt(mean((results$Diabetes - results$Predicted)^2))
+
+print(paste("RMSE:",round(rmse,3)))
+
+
+shapiro_test(result$residuals)#샤피로 테스트 정규성 검증
+
+opar <- par(no.readonly = TRUE)
+par(mfrow = c(2,2))
+plot(result)
+par(opar)
+#1x1칸은 선형성 , 1x2 칸은 잔차의 정규성 2x1칸은 등분산성 2x2칸은 이상치 판단
+cand <- influencePlot(result, id = list(n=3))#세 기준에서(StudRes, Hat CookD) 상위 3개를 각각 뽑아 합친 것
+
+
+mf <- model.frame(result)
+z <- round(scale(mf[sapply(mf, is.numeric)]),1)
+
+rownames(z) <- rownames(mf)
+cbind(round(cand,2), z[rownames(cand),])
+
+out_rows <- c("229","446")#이상치 열 제거
+df2 <- df[!rownames(df) %in% out_rows, ]
+
+result2 <- lm(Diabetes ~., data = df2)
+cand <- influencePlot(result2, id = list(n=3))
+
+max(cooks.distance(result2))#max cook 값 확인 0,5~1확인, >1 -> 영향점
