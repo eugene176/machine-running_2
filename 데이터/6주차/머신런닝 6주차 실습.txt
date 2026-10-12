@@ -1,0 +1,104 @@
+머신런닝 6주차 실습
+library("rstatix")
+library("skimr")
+library("car")
+library("MASS")
+#후진 소거법
+df <- read.csv("C:/Users/USER/Desktop/02.diabetes.csv",header = TRUE,na = ".")
+result_bk = lm(df$Diabetes ~., data = df)
+Df_fit_bk = stepAIC(result_bk, direction = "backward", trace = T)#trace = 하나씩 빼는 것을 보여줌
+
+#전진 선택법
+result_fw = lm(df$Diabetes ~ 1, data = df)
+Df_fit_bk = stepAIC(result_fw, direction = "forward", scope = (Df_fit_bk),trace = T)
+ㄴ후진 소거법에서 선택된 얘들을 대상으로 하는거라 Df_fit_bk로 범위를 잡은 것
+
+
+-----------------------------------------------------전체 프로세스 실행--------------------------------------------------
+library("rstatix")
+library("skimr")
+library("car")
+library("MASS")
+library("dplyr")
+library("ggplot2")
+library("lmtest")
+
+
+df <- read.csv("C:/Users/USER/Desktop/Concrete Compressive Strength.csv",header =TRUE, stringsAsFactors = TRUE)
+skim(df)
+
+df<-na.omit(df)
+names(df)
+result <- lm(df$Concrete.compressive.strength ~ ., data = df)
+result1<- lm(df$Concrete.compressive.strength ~ 1, data = df)
+
+anova_result <- anova(result1, result)
+print(anova_result)
+
+summary(result)
+model <- lm(Concrete.compressive.strength ~ Cement, data = df)
+
+saveRDS(model, "regression_model.rds")
+
+loaded_model <- readRDS("regression_model.rds")
+
+new_data <-read.csv("C:/Users/USER/Desktop/Concrete Compressive Strength.csv")
+
+predicted <- predict(loaded_model, newdata = new_data)
+head(predicted)
+results <- data.frame(new_data, Predicted = predicted)
+
+#rmse<- sqrt(mean((result$Concrete.compressive.strength - results$Predicted)))
+
+#print(paste("RMSE:", round(rmse,3)))
+Fitted <- fitted(result)
+Residuals <- resid(result)
+
+ggplot(df, aes(x= Fitted, y = Residuals)) + 
+         geom_point(alpha = 0.6)+
+         geom_smooth(method = "loess", se = FALSE, color = "blue") +
+         geom_hline(yintercept = 0, linetype = "dashed", color = "red") +
+         labs(title = "Residuals vs Fitted (선형성 확인)",
+              x = "적합값(Fitted values)",
+              y = "잔차 (Residuals)") +
+         theme_minimal()
+
+
+#0.05보다 크면 등분산성 유지
+bptest(result)
+#0.05보다 크면 독립성 가짐짐
+durbinWatsonTest(result)
+#정규성 0.05보다 커야 함함
+shapiro_test(result$residuals)
+
+
+
+cand <- influencePlot(result, id = list(n =3 ))
+mf <- model.frame(result)
+z <- round(scale(mf[sapply(df,is.numeric)]), 1)
+
+rownames(z) <- rownames(mf)
+cbind(round(cand,2), z[rownames(cand), ])
+    
+vif_values <- vif(result)
+
+print(vif_values)
+
+
+selected_predictors <- names(vif_values[vif_values > 7])
+
+print(selected_predictors)
+
+
+df <- select(df, -c(Cement,Blast.Furnace.Slag,Fine.Aggregate,Water))
+skim(df)
+result <- lm(df$Concrete.compressive.strength ~ ., data = df)
+
+result_bk = lm(df$Concrete.compressive.strength ~., data = df)
+Df_fit_bk = stepAIC(result_bk, direction = "backward", trace = T)
+
+result_fw = lm(df$Concrete.compressive.strength ~1, data = df)
+Df_fit_fk = stepAIC(result_fw, direction = "forward",scope = (Df_fit_bk), trace = T)
+
+
+  
