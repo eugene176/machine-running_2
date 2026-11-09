@@ -1,0 +1,67 @@
+library('GGally')
+library('skimr')
+library('tidyverse')
+library('tidymodels')
+library('caret')
+library('car')
+library('broom')
+library('dplyr')
+library('pROC')
+library('e1071')
+install.packages('pROC')
+install.packages('e1071')
+
+
+df<- read.csv("C:/Users/USER/Desktop/UniversalBank.csv",header = TRUE, na = ".")
+skim(df)
+
+names(df)
+df <-  select(df, -c('Securities.Account','CD.Account','Online','CreditCard'))
+
+
+df$Personal.Loan <- ifelse(df$Personal.Loan == 1, "yes", "no")#1이면 yes로 그외엔 no로 바꿔주는 코드
+df$Personal.Loan <- as.factor(df$Personal.Loan)#문자(yes,no)는 분석이 안되서 요소로 바꿔주는 코드
+
+trainIndex <- createDataPartition(df$Personal.Loan, p = 0.8, list = FALSE)#80%를 머신런닝용으로 20%를 테스트로 사용
+train_data <- df[trainIndex,]
+test_data <- df[-trainIndex,]#taindata 이외에 모든 걸 의미 즉 20%
+
+result1 <- glm(train_data$Personal.Loan ~ 1, data = train_data, family = "binomial")#binomial은 로지스틱 사용 할 떄 사용
+result2 <- glm(train_data$Personal.Loan ~ ., data = train_data, family = "binomial")
+
+anova(result1,result2,test = "Chisq")#Chisq는 로지스틱 사용할 떄 사용
+
+summary(result2)
+
+tidy_result <- tidy(result2)
+tidy_result <- mutate_if(tidy_result, is.numeric,round,3)#소수점 3개까지 출력해라 깔끔하게 보기 위한 용도
+
+print(tidy_result)
+
+train_data <-  select(df, -c('ID','Age','Experience','ZIP.Code','Mortgage'))
+result2 <- glm(train_data$Personal.Loan ~ ., data = train_data, family = "binomial")
+durbinWatsonTest(result2)
+vif(result2)
+
+result = glm(train_data$Personal.Loan ~., data = train_data, family = "binomial")
+
+influencePlot(result, id.method = "identify")
+summary(result)
+saveRDS(result, file = "logistic")
+#----------------------------------------------------------------------------------------------------
+
+test_predictions <- predict(result, newdata = test_data, type = "response")
+print(test_predictions)
+
+predicted_class <- ifelse(test_predictions > 0.5, "yes","no")#임계값 정하기
+predicted_calss <- as.factor(predicted_class)# yes,no를 요소로 바꾸기
+print(predicted_calss)
+
+confusion_matrix <- confusionMatrix(predicted_calss,test_data$Personal.Loan)#정밀도,재현율값 구하기
+confusion_matrix
+
+roc_curve <- roc(test_data$Personal.Loan, test_predictions)#roc 곡선, auc 값 구할 수 있게 해줌
+plot(roc_curve)
+auc(roc_curve)
+
+#----------------------------------------------------------------------------------------------------
