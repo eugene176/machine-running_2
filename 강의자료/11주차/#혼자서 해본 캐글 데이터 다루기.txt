@@ -1,0 +1,92 @@
+#혼자서 해본 캐글 데이터 다루기 
+library('e1071')
+library('caret')
+library('pROC')
+library('GGally')
+library('skimr')
+library('tidyverse')
+library('tidymodels')
+library('caret')
+library('car')
+library('broom')
+library('dplyr')
+library('pROC')
+library('e1071')
+
+df <- read.csv("C:/Users/USER/Downloads/archive/UCI_Credit_Card.csv")
+
+df$default.payment.next.month <- ifelse(df$default.payment.next.month == 1, "Yes", "No")
+df$default.payment.next.month <- as.factor(df$default.payment.next.month)
+
+trainIndex <- createDataPartition(df$default.payment.next.month, p =0.8, list = FALSE)
+train_data <- df[trainIndex,]
+test_data<- df[-trainIndex,]
+
+result1 <- glm(train_data$default.payment.next.month ~ 1, data = train_data, family = "binomial")#binomial은 로지스틱 사용 할 떄 사용
+result2 <- glm(train_data$default.payment.next.month ~ ., data = train_data, family = "binomial")
+  
+anova(result1,result2,test = "Chisq")
+summary(result2)
+
+
+tidy_result <- tidy(result2)
+print(tidy_result)
+train_data <-  select(df, -c('ID','PAY_4','PAY_5','PAY_6','BILL_AMT2','BILL_AMT3','BILL_AMT4','BILL_AMT5','BILL_AMT6','PAY_AMT3',
+                             'PAY_AMT4','PAY_AMT6'))
+result2 <- glm(train_data$default.payment.next.month ~ ., data = train_data, family = "binomial")
+durbinWatsonTest(result2)
+vif(result2)
+
+result = glm(train_data$default.payment.next.month ~., data = train_data, family = "binomial")
+summary(result)
+test_predictions <- predict(result, newdata = test_data, type = "response")
+
+predicted_class <- ifelse(test_predictions > 0.5, "Yes","No")#임계값 정하기
+predicted_calss <- as.factor(predicted_class)# yes,no를 요소로 바꾸기
+print(predicted_calss)
+
+confusion_matrix <- confusionMatrix(predicted_calss,test_data$default.payment.next.month)#정밀도,재현율값 구하기
+confusion_matrix
+
+roc_curve <- roc(test_data$default.payment.next.month, test_predictions)#roc 곡선, auc 값 구할 수 있게 해줌
+plot(roc_curve)
+auc(roc_curve)
+#------------------------------------------------------------------------------------------------------
+df <- read.csv("C:/Users/USER/Downloads/archive/UCI_Credit_Card.csv")
+
+df$default.payment.next.month <- ifelse(df$default.payment.next.month == 1, "Yes", "No")
+df$default.payment.next.month <- as.factor(df$default.payment.next.month)
+
+trainIndex <- createDataPartition(df$default.payment.next.month, p =0.8, list = FALSE)
+train_data <- df[trainIndex,]
+test_data<- df[-trainIndex,]
+
+cost_value <- 1
+gamma_value <- 0.1
+
+svm_model <- svm(train_data$default.payment.next.month ~ .,data = train_data,
+                 type = 'C-classification',
+                 kernel = 'polynomial',
+                 cost = cost_value,
+                 gamma = gamma_value,
+                 probability = TRUE)
+
+summary(svm_model)
+
+predicted_probs <- predict(svm_model, test_data, probability = TRUE)
+predicted_probs
+
+predicted_probs <- attr(predicted_probs, "probabilities")[, "Yes"]
+
+predicted_classes <- ifelse(predicted_probs > 0.5, "Yes", "No")
+predicted_classes <- as.factor(predicted_classes)
+predicted_classes
+
+conf_matrix <- confusionMatrix(predicted_classes, test_data$default.payment.next.month)
+print(conf_matrix)
+
+roc_curve <- roc(test_data$default.payment.next.month, predicted_probs)
+plot(roc_curve)
+auc(roc_curve)
+
+#여기서 결과가 제대로 안 나오는건 서포트 벡터 머신이 범주형 처리가 가능하긴 해도 여기서는 너무 많은 범주형 데이터가 있어서 제대로 예측이 안된 것.
